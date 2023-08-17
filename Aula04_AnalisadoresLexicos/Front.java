@@ -1,7 +1,10 @@
 package Aula04_AnalisadoresLexicos;
 
-import java.util.HashMap;
-import java.util.Map;
+/*
+ * Front.java - um sistema analisador léxico para expressões aritméticas simples
+*/
+
+import java.io.File;
 import java.util.Scanner;
 
 public class Front {
@@ -9,7 +12,9 @@ public class Front {
     /* Variáveis */
     static int charClass;
     static char[] lexeme = new char[100];
+    static String fileContent;
     static char nextChar;
+    static int nextCharIndex = 0;
     static int lexLen;
     static int token;
     static int nextToken;
@@ -28,14 +33,18 @@ public class Front {
     static final int DIV_OP = 24;
     static final int LEFT_PAREN = 25;
     static final int RIGHT_PAREN = 26;
-    static final int EOF = 50;
+    static final int EOF = -1;
 
     public static void main(String[] args) {
         /* Abre o arquivo de dados de entrada e processa seu conteúdo */
+        String filePath = args.length > 0 ? args[0]
+            : "Aula04_AnalisadoresLexicos/front.in";
         try {
-            in_fp = new Scanner("front.in");
+            File file = new File(filePath);
+            in_fp = new Scanner(file);
+            fileContent = in_fp.nextLine();
             if (in_fp == null)
-                throw new Exception();
+                throw new Exception(file.getName());
             else {
                 getChar();
                 do {
@@ -43,7 +52,7 @@ public class Front {
                 } while (nextToken != EOF);
             }
         } catch (Exception e) {
-            System.out.println("ERROR - cannot open front.in");
+            System.out.println("ERROR - cannot open file " + e.getMessage());
         }
     }
     
@@ -88,41 +97,39 @@ public class Front {
 
     /* getChar - uma função para obter o próximo caractere de
            entrada e determinar sua classe */
-    static boolean isalpha(char ch) {
-        return ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z'));
-    }
-    static boolean isdigit(char ch) {
-        return (ch >= '0' && ch <= '9');
-    }
     static void getChar()
     {
-        if ((nextChar = getc(in_fp)) != /*EOF*/null) {
-            if (isalpha(nextChar))
+        try {
+            nextChar = fileContent.charAt(nextCharIndex++);
+            if (Character.isAlphabetic(nextChar))
                 charClass = LETTER;
-            else if (isdigit(nextChar))
+            else if (Character.isDigit(nextChar))
                 charClass = DIGIT;
             else
                 charClass = UNKNOWN;
-        } else
+        } catch (Exception e) {
             charClass = EOF;
+        }
     }
  
     /* getNonBlank - uma função para chamar getChar até que ele
                     retorne um caractere que não seja um espaço em
                     branco */
-    static boolean isspace(char ch) {
-        return (ch == ' ' || ch == '\t' || ch == '\n');
-    }
     static void getNonBlank()
     {
-        while (isspace(nextChar))
+        while (Character.isWhitespace(nextChar))
             getChar();
     }
 
     /* lex - um analisador léxico simples para expressões
        aritméticas */
-    static int lex() {
+    static void clearLexem() {
         lexLen = 0;
+        for (int i = 0; i < lexeme.length; i++)
+            lexeme[i] = 0;
+    }
+    static int lex() {
+        clearLexem();
         getNonBlank();
         switch (charClass) {
             /* Analisa identificadores sintaticamente */
@@ -149,7 +156,7 @@ public class Front {
                 
             /*Parênteses e operadores*/
             case UNKNOWN:
-                lookup(nextChar);
+                nextToken = lookup(nextChar);
                 getChar();
                 break;
                 /*Fim do arquivo */
@@ -163,8 +170,10 @@ public class Front {
                 break;
         }
 
-        System.out.printf("Next token is: *d, Next lexeme is #s\n",
-            nextToken, lexeme);
+        System.out.println(
+            "Next token is: " + nextToken +
+            "  Next lexeme is: " + new String(lexeme)
+        );
 
         return nextToken;
     }
