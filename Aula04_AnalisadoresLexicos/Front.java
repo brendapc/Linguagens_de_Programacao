@@ -8,19 +8,15 @@ import java.io.File;
 import java.util.Scanner;
 
 public class Front {
-    /* Declarações globais */
-    /* Variáveis */
+    /* Declarações e Variáveis Globais */
     static int charClass;
     static char[] lexeme = new char[100];
     static String fileContent;
     static char nextChar;
     static int nextCharIndex = 0;
     static int lexLen;
-    static int token;
-    static int nextToken;
-    static Scanner in_fp;
 
-    /* caracteres e tokens */
+    /* Caracteres e Tokens */
     static final int LETTER = 0;
     static final int DIGIT = 1;
     static final int UNKNOWN = 99;
@@ -39,29 +35,23 @@ public class Front {
         /* Abre o arquivo de dados de entrada e processa seu conteúdo */
         String filePath = args.length > 0 ? args[0]
             : "Aula04_AnalisadoresLexicos/front.in";
-        try {
-            File file = new File(filePath);
-            in_fp = new Scanner(file);
+        File file = new File(filePath);
+        try (Scanner in_fp = new Scanner(file)) {
             fileContent = in_fp.nextLine();
-            if (in_fp == null)
-                throw new Exception(file.getName());
-            else {
-                getChar();
-                do {
-                    lex();
-                } while (nextToken != EOF);
-            }
+            charClass = getCharClass();
+            while (lex() != EOF) {}
         } catch (Exception e) {
             System.out.println("ERROR - cannot open file " + e.getMessage());
         }
     }
-    
-    /* lookup - uma função para processar operadores e parenteses
-             e retornar o token */
-    static int lookup(char ch)
-    {
-        addChar();
-        switch (ch) {
+
+    /**
+     * @param nextChar - next character from input
+     * @return equivalent token for the given character
+    */
+    static int lookup(char nextChar) {
+        addChar(nextChar);
+        switch (nextChar) {
             case '(':
                 return LEFT_PAREN;
 
@@ -85,9 +75,11 @@ public class Front {
 	    }
     }
     
-    /* addChar - uma função para adicionar nextChar a lexeme */
-    static void addChar()
-    {
+    /**
+     * Uma função para adicionar nextChar ao lexeme
+     * @param nextChar - next character from input
+    */
+    static void addChar(char nextChar) {
         if (lexLen <= 98) {
             lexeme[lexLen++] = nextChar;
             lexeme[lexLen] = 0;
@@ -95,78 +87,74 @@ public class Front {
             System.out.println("Error - lexeme is too long");
     }
 
-    /* getChar - uma função para obter o próximo caractere de
-           entrada e determinar sua classe */
-    static void getChar()
-    {
+    /**
+     * Determines the character class of nextChar
+     * @return next character from input
+     */
+    static int getCharClass() {
         try {
             nextChar = fileContent.charAt(nextCharIndex++);
             if (Character.isAlphabetic(nextChar))
-                charClass = LETTER;
+                return LETTER;
             else if (Character.isDigit(nextChar))
-                charClass = DIGIT;
+                return DIGIT;
             else
-                charClass = UNKNOWN;
+                return UNKNOWN;
         } catch (Exception e) {
-            charClass = EOF;
+            return EOF;
         }
     }
  
-    /* getNonBlank - uma função para chamar getChar até que ele
-                    retorne um caractere que não seja um espaço em
-                    branco */
-    static void getNonBlank()
-    {
+    /**
+     * @param nextChar - next character from input
+     * @return next non-whitespace character from input 
+    */
+    static void getNonBlank(char nextChar) {
         while (Character.isWhitespace(nextChar))
-            getChar();
+            charClass = getCharClass();
     }
 
-    /* lex - um analisador léxico simples para expressões
-       aritméticas */
-    static void clearLexem() {
-        lexLen = 0;
-        for (int i = 0; i < lexeme.length; i++)
-            lexeme[i] = 0;
-    }
+    /**
+     * @return next token
+    */
     static int lex() {
-        clearLexem();
-        getNonBlank();
+        lexLen = 0;
+        lexeme = new char[100];
+        getNonBlank(nextChar);
+
+        int nextToken = -1;
         switch (charClass) {
             /* Analisa identificadores sintaticamente */
             case LETTER:
-                addChar();
-                getChar();
-                while (charClass == LETTER || charClass == DIGIT) {
-                    addChar();
-                    getChar();
-                }
+                do {
+                    addChar(nextChar);
+                    charClass = getCharClass();
+                } while (charClass == LETTER || charClass == DIGIT);
                 nextToken = IDENT;
                 break;
                 
-            /*Analisa literais sintaticamente */
+            /* Analisa literais sintaticamente */
             case DIGIT:
-                addChar();
-                getChar();
-                while (charClass == DIGIT) {
-                    addChar();
-                    getChar();
-                }
+                do {
+                    addChar(nextChar);
+                    charClass = getCharClass();
+                } while (charClass == DIGIT);
                 nextToken = INT_LIT;
                 break;
                 
-            /*Parênteses e operadores*/
+            /* Parênteses e operadores*/
             case UNKNOWN:
                 nextToken = lookup(nextChar);
-                getChar();
+                charClass = getCharClass();
                 break;
-                /*Fim do arquivo */
 
+            /* Fim do arquivo */
             case EOF:
-                nextToken = EOF;
                 lexeme[0] = 'E';
                 lexeme[1] = '0';
                 lexeme[2] = 'F';
                 lexeme[3] = 0;
+                nextToken = EOF;
                 break;
         }
 
