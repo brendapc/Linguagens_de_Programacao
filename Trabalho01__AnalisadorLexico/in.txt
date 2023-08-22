@@ -1,0 +1,2 @@
+Isto nao e um comentario
+/* Isto e um comentario */
